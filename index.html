@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="sr-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Relja">
+<meta name="theme-color" content="#11121a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Relja</title>
+<style>
+:root{
+  --bg:#11121a;--card:#1b1d29;--card2:#262939;--line:#2e3145;
+  --tx:#eeecf6;--mu:#a09eb4;
+  --feed:#f3a860;--feedbg:#35271b;--feedtx:#ffcf9e;
+  --sleep:#a29ef7;--sleepbg:#23234a;--sleeptx:#cfcdff;--sleepon:#6d67e6;
+  --bad:#f07373;--r:22px;
+}
+@media (prefers-color-scheme: light){:root{
+  --bg:#f6f4ef;--card:#ffffff;--card2:#eeebe4;--line:#e4e0d7;
+  --tx:#1d1c24;--mu:#66646f;
+  --feed:#c96d14;--feedbg:#fbe8d4;--feedtx:#9a4f07;
+  --sleep:#5a54d6;--sleepbg:#e7e5fb;--sleeptx:#3f39b8;--sleepon:#5a54d6;
+  --bad:#d23c3c;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);
+  font:16px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
+body{padding-top:env(safe-area-inset-top)}
+button{font:inherit;color:inherit;cursor:pointer}
+main{padding:10px 16px calc(96px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+header.top{display:flex;align-items:baseline;justify-content:space-between;padding:6px 4px 12px}
+h1{font-size:30px;margin:0;letter-spacing:-.02em}
+.date{color:var(--mu);font-size:15px}
+
+/* Velika dugmad */
+.tile{position:relative;border-radius:var(--r);padding:20px 76px 20px 20px;margin:0 0 12px;min-height:132px;
+  display:flex;flex-direction:column;justify-content:center;cursor:pointer;transition:transform .08s,background .2s}
+.tile:active{transform:scale(.975)}
+.tile .t{display:flex;align-items:center;gap:12px;font-size:32px;font-weight:750;letter-spacing:-.02em}
+.tile .t .ico{font-size:36px;line-height:1}
+.tile .s{margin-top:8px;font-size:18px;color:var(--mu)}
+.tile .s b{color:var(--tx);font-weight:650;font-size:21px}
+.tile.feed{background:var(--feedbg)} .tile.feed .t{color:var(--feedtx)}
+.tile.sleep{background:var(--sleepbg)} .tile.sleep .t{color:var(--sleeptx)}
+.tile.sleep.on{background:var(--sleepon)}
+.tile.sleep.on .t,.tile.sleep.on .s,.tile.sleep.on .s b{color:#fff}
+.tile .clock{position:absolute;top:50%;right:14px;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;
+  border:0;display:grid;place-items:center;background:rgba(128,128,128,.18);font-size:22px}
+.tile.flash{animation:flash .5s}
+@keyframes flash{0%{filter:brightness(1.6)}100%{filter:none}}
+
+/* Naknadno buđenje */
+.wake{background:var(--card);border-radius:18px;padding:14px 14px 12px;margin:-4px 0 12px}
+.wake .lbl{font-size:15px;color:var(--mu);margin:0 2px 10px}
+.wake .lbl.warn{color:var(--tx);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{flex:none;border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:11px 15px;font-size:16px;font-weight:550}
+.chip:active{filter:brightness(1.3)}
+.chip[disabled]{opacity:.35}
+
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);margin:22px 6px 8px;font-weight:650}
+.log{list-style:none;margin:0;padding:0;background:var(--card);border-radius:18px;overflow:hidden}
+.log li{display:flex;align-items:center;gap:12px;padding:13px 14px 13px 16px;border-top:1px solid var(--line);cursor:pointer}
+.log li:first-child{border-top:0}
+.log li:active{background:var(--card2)}
+.log .i{font-size:22px;width:28px;text-align:center}
+.log .m{flex:1;min-width:0}
+.log .a{font-weight:650;font-variant-numeric:tabular-nums;font-size:17px}
+.log .b{color:var(--mu);font-size:14px}
+.log .r{font-variant-numeric:tabular-nums;color:var(--tx);font-size:15px;text-align:right;white-space:nowrap}
+.log .chev{color:var(--mu);font-size:20px;margin-left:2px}
+.empty{padding:22px;text-align:center;color:var(--mu);list-style:none}
+.hint{color:var(--mu);font-size:13px;text-align:center;margin:10px 0 0}
+
+/* Dnevnik */
+.daynav{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 12px}
+.daynav button{width:48px;height:48px;border-radius:50%;border:0;background:var(--card);font-size:22px}
+.daynav button[disabled]{opacity:.3}
+.daynav .d{font-size:22px;font-weight:700;text-align:center;flex:1}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.kpi{background:var(--card);border-radius:16px;padding:12px 12px 10px}
+.kpi .k{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em}
+.kpi .v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:13px;font-weight:500;color:var(--mu)}
+
+/* Statistika */
+.seg{display:flex;background:var(--card);border-radius:12px;padding:3px;margin:2px 0 14px}
+.seg button{flex:1;border:0;background:none;padding:9px 0;border-radius:9px;font-weight:600;color:var(--mu)}
+.seg button.on{background:var(--card2);color:var(--tx)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:var(--card);border-radius:18px;padding:14px 14px 10px;margin-top:12px}
+.card h3{margin:0 0 2px;font-size:16px}
+.card .cap{font-size:13px;color:var(--mu);min-height:18px;margin-bottom:6px}
+.card svg{display:block;width:100%;height:auto;overflow:visible}
+.card svg text{fill:var(--mu);font-size:11px;font-family:inherit}
+.card svg .val{fill:var(--tx);font-weight:600}
+.card svg .grid{stroke:var(--line);stroke-width:1}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+th{font-size:12px;color:var(--mu);font-weight:600;text-align:right;padding:6px 4px;text-transform:uppercase;letter-spacing:.03em}
+td{text-align:right;padding:9px 4px;border-top:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+tr.today td{color:var(--mu)}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-weight:600;font-size:17px;background:var(--card2);margin-top:8px}
+.btn.pri{background:var(--sleepon);color:#fff}
+.btn.del{background:transparent;color:var(--bad);box-shadow:inset 0 0 0 1.5px var(--bad)}
+.btn.del.arm{background:var(--bad);color:#fff;box-shadow:none}
+.note{font-size:13px;color:var(--mu);margin:8px 4px 0}
+
+/* Donji meni */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--bg);
+  background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav.tabs button{flex:1;border:0;background:none;color:var(--mu);font-size:12px;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:1px}
+nav.tabs .ti{font-size:22px;filter:grayscale(1);opacity:.7}
+nav.tabs button.on{color:var(--tx);font-weight:600}
+nav.tabs button.on .ti{filter:none;opacity:1}
+
+/* Poruka + poništi */
+#toast{position:fixed;left:12px;right:12px;bottom:calc(74px + env(safe-area-inset-bottom));max-width:536px;margin:0 auto;
+  background:var(--card2);color:var(--tx);border:1px solid var(--line);border-radius:16px;padding:10px 10px 10px 16px;
+  display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);
+  transform:translateY(16px);opacity:0;pointer-events:none;transition:.2s;z-index:8}
+#toast.show{transform:none;opacity:1;pointer-events:auto}
+#toast .msg{flex:1;font-weight:550;font-size:15px}
+#toast button{border:0;background:var(--sleepon);color:#fff;border-radius:10px;padding:10px 14px;font-weight:700}
+#toast button[hidden]{display:none}
+
+/* Donji panel */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+#scrim.show{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:24px 24px 0 0;
+  padding:10px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .25s,visibility 0s .25s;z-index:10;
+  max-height:88vh;overflow:auto;visibility:hidden}
+#sheet.show{transform:none;visibility:visible;transition:transform .25s}
+#sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+#sheet h3{margin:0 0 14px;font-size:21px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid3 .chip{padding:14px 0;text-align:center}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line);margin-top:14px}
+.field+.field{margin-top:0}
+.field label{color:var(--mu)}
+input[type=time],input[type=datetime-local]{font:inherit;font-size:17px;background:var(--card2);color:var(--tx);border:0;border-radius:10px;padding:9px 10px;min-width:0;-webkit-user-select:text;user-select:text}
+.row{display:flex;gap:10px;margin-top:14px}.row .btn{margin:0}
+</style>
+</head>
+<body>
+<main>
+  <!-- POČETNA -->
+  <section id="v-home" class="view active">
+    <header class="top"><h1>Relja</h1><div class="date" id="hDate"></div></header>
+
+    <div class="tile feed" id="tFeed" role="button" aria-label="Zabeleži podoj sada">
+      <div class="t"><span class="ico">🍼</span><span>Podoj</span></div>
+      <div class="s" id="feedSub"></div>
+      <button class="clock" data-time="feed" aria-label="Podoj u drugo vreme">⏱</button>
+    </div>
+
+    <div class="tile sleep" id="tSleep" role="button">
+      <div class="t"><span class="ico" id="sleepIco">😴</span><span id="sleepTxt">Zaspao</span></div>
+      <div class="s" id="sleepSub"></div>
+      <button class="clock" data-time="sleep" aria-label="Spavanje u drugo vreme">⏱</button>
+    </div>
+
+    <div class="wake" id="wake" hidden>
+      <div class="lbl" id="wakeLbl">Zaboravili ste? Probudio se pre:</div>
+      <div class="chips" id="wakeChips"></div>
+    </div>
+
+    <h2>Poslednja 24 sata</h2>
+    <ul class="log" id="homeList"></ul>
+    <p class="hint">Dodir na zapis — ispravka vremena ili brisanje</p>
+  </section>
+
+  <!-- DNEVNIK -->
+  <section id="v-log" class="view">
+    <div class="daynav">
+      <button id="dPrev" aria-label="Prethodni dan">‹</button>
+      <div class="d" id="dLbl"></div>
+      <button id="dNext" aria-label="Sledeći dan">›</button>
+    </div>
+    <div class="sum" id="dSum"></div>
+    <ul class="log" id="dayList"></ul>
+    <button class="btn" id="dAdd" style="margin-top:14px">+ Dodaj zapis za ovaj dan</button>
+  </section>
+
+  <!-- STATISTIKA -->
+  <section id="v-stats" class="view">
+    <header class="top"><h1>Statistika</h1></header>
+    <div class="seg" id="seg">
+      <button data-n="7" class="on">7 dana</button><button data-n="14">14 dana</button><button data-n="30">30 dana</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <p class="note" id="kpiNote"></p>
+    <div class="card"><h3>San po danu</h3><div class="cap" id="capSleep">Dodirni stubić za detalje</div><div id="chSleep"></div></div>
+    <div class="card"><h3>Broj podoja po danu</h3><div class="cap" id="capFeed">Dodirni stubić za detalje</div><div id="chFeed"></div></div>
+    <div class="card">
+      <h3>Po danima</h3>
+      <table><thead><tr><th>Dan</th><th>Podoji</th><th>Razmak</th><th>San</th><th>Najduži</th></tr></thead><tbody id="tbl"></tbody></table>
+    </div>
+    <h2>Podaci</h2>
+    <button class="btn" id="exCsv">⬇︎ Izvoz u Excel (svi zapisi)</button>
+    <button class="btn" id="exDays">⬇︎ Izvoz u Excel (dnevna statistika)</button>
+    <button class="btn" id="exJson">💾 Rezervna kopija</button>
+    <button class="btn" id="imJson">↺ Vrati iz rezervne kopije</button>
+    <input type="file" id="imFile" accept="application/json,.json" hidden>
+    <p class="note" id="dbInfo"></p>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-view="home" class="on"><span class="ti">🏠</span>Početna</button>
+  <button data-view="log"><span class="ti">📅</span>Dnevnik</button>
+  <button data-view="stats"><span class="ti">📊</span>Statistika</button>
+</nav>
+
+<div id="toast"><div class="msg"></div><button hidden>Poništi</button></div>
+<div id="scrim"></div>
+<div id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+
+<script>
+'use strict';
+const MIN=6e4, HOUR=36e5, DAYN=['ned','pon','uto','sre','čet','pet','sub'];
+const MON=['januar','februar','mart','april','maj','jun','jul','avgust','septembar','oktobar','novembar','decembar'];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let events=[], view='home', statN=7;
+let logDay=startOfDay(Date.now());
+
+/* ---------- vreme ---------- */
+function startOfDay(t){const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
+function addDays(t,n){const d=new Date(t);d.setDate(d.getDate()+n);return d.getTime();}
+const p2=n=>String(n).padStart(2,'0');
+function hm(t){const d=new Date(t);return p2(d.getHours())+':'+p2(d.getMinutes());}
+function dur(ms){ms=Math.max(0,ms);const m=Math.round(ms/MIN);if(m<1)return '< 1 min';const h=Math.floor(m/60),r=m%60;return h?(r?`${h} h ${r} min`:`${h} h`):`${r} min`;}
+function durS(ms){if(ms==null)return '—';const m=Math.round(ms/MIN);const h=Math.floor(m/60),r=m%60;return h?`${h}:${p2(r)}`:`0:${p2(r)}`;}
+function dShort(t){const d=new Date(t);return `${d.getDate()}.${d.getMonth()+1}.`;}
+function dayLabel(t){const s=startOfDay(Date.now());if(t===s)return 'Danas';if(t===addDays(s,-1))return 'Juče';const d=new Date(t);return `${DAYN[d.getDay()]} ${d.getDate()}. ${d.getMonth()+1}.`;}
+function toLocalInput(t){const d=new Date(t);return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;}
+function fromLocalInput(v){if(!v)return null;const [a,b]=v.split('T');if(!b)return null;const [y,m,d]=a.split('-').map(Number);const [hh,mm]=b.split(':').map(Number);return new Date(y,m-1,d,hh,mm).getTime();}
+function fromTimeInput(v,base){ // HH:MM -> poslednje takvo vreme do "base"
+  if(!v)return null;const [hh,mm]=v.split(':').map(Number);const d=new Date(base);d.setHours(hh,mm,0,0);
+  if(d.getTime()>base+MIN)d.setDate(d.getDate()-1);return d.getTime();}
+
+/* ---------- baza (IndexedDB + kopija u localStorage) ---------- */
+const store={
+  db:null,
+  async init(){
+    try{this.db=await new Promise((res,rej)=>{const r=indexedDB.open('relja',1);
+      r.onupgradeneeded=()=>r.result.createObjectStore('events',{keyPath:'id'});
+      r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}catch(e){this.db=null;}
+    try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+  },
+  op(fn){if(!this.db)return Promise.resolve();return new Promise((res,rej)=>{const t=this.db.transaction('events','readwrite');fn(t.objectStore('events'));t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});},
+  async all(){
+    let list=[];
+    if(this.db){try{list=await new Promise((res,rej)=>{const q=this.db.transaction('events').objectStore('events').getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}catch(e){}}
+    if(!list.length){ // obnova iz rezervne kopije ako je IndexedDB prazan
+      try{const b=JSON.parse(localStorage.getItem('relja-backup')||'[]');if(Array.isArray(b)&&b.length){list=b;await this.op(s=>b.forEach(e=>s.put(e)));}}catch(e){}
+    }
+    return list.filter(valid);
+  },
+  async put(e){await this.op(s=>s.put(e));mirror();},
+  async del(id){await this.op(s=>s.delete(id));mirror();},
+  async putMany(arr){await this.op(s=>arr.forEach(e=>s.put(e)));mirror();}
+};
+function mirror(){try{localStorage.setItem('relja-backup',JSON.stringify(events));}catch(e){}}
+function valid(e){return e&&typeof e.id==='string'&&((e.type==='feed'&&isFinite(e.t))||(e.type==='sleep'&&isFinite(e.start)&&(e.end==null||isFinite(e.end))));}
+
+/* ---------- model ---------- */
+const tOf=e=>e.type==='feed'?e.t:e.start;
+const sortEv=()=>events.sort((a,b)=>tOf(a)-tOf(b));
+const feeds=()=>events.filter(e=>e.type==='feed');
+const sleeps=()=>events.filter(e=>e.type==='sleep');
+function openSleep(){const o=sleeps().filter(e=>e.end==null);return o.length?o[o.length-1]:null;}
+function lastFeed(now){const f=feeds().filter(e=>e.t<=now);return f.length?f[f.length-1]:null;}
+function lastClosedSleep(){let best=null;for(const e of sleeps())if(e.end!=null&&(!best||e.end>best.end))best=e;return best;}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function prevFeedMap(){const m={};let prev=null;for(const e of feeds()){m[e.id]=prev;prev=e;}return m;}
+
+async function addEv(e){events.push(e);sortEv();render();await store.put(e);}
+async function removeEv(id){events=events.filter(e=>e.id!==id);render();await store.del(id);}
+async function saveEv(e){sortEv();render();await store.put(e);}
+
+function flash(sel){const el=$(sel);el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');}
+
+function logFeed(t){const e={id:uid(),type:'feed',t};addEv(e);flash('#tFeed');
+  toast(`🍼 Podoj zabeležen u ${hm(t)}`,()=>removeEv(e.id));}
+function startSleep(t){
+  if(openSleep()){toast('Već je upisano da spava — prvo upišite kada se probudio');return;}
+  const e={id:uid(),type:'sleep',start:t,end:null};addEv(e);flash('#tSleep');
+  toast(`😴 Zaspao u ${hm(t)}`,()=>removeEv(e.id));}
+function endSleep(t){const o=openSleep();if(!o)return;
+  if(t<=o.start){toast(`Buđenje mora biti posle uspavljivanja (${hm(o.start)})`);return;}
+  o.end=t;saveEv(o);flash('#tSleep');
+  toast(`☀️ Probudio se u ${hm(t)} · spavao ${dur(t-o.start)}`,()=>{o.end=null;saveEv(o);});}
+
+/* ---------- poruka sa "Poništi" ---------- */
+let toastTimer=null,toastUndo=null;
+function toast(msg,undo){
+  const el=$('#toast');el.querySelector('.msg').textContent=msg;
+  const b=el.querySelector('button');b.hidden=!undo;toastUndo=undo||null;
+  el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),undo?6000:3500);
+}
+$('#toast button').onclick=()=>{const u=toastUndo;toastUndo=null;$('#toast').classList.remove('show');if(u){u();setTimeout(()=>toast('Poništeno'),50);}};
+
+/* ---------- donji panel ---------- */
+function openSheet(html){$('#sheetBody').innerHTML='<div>'+html+'</div>';$('#sheet').classList.add('show');$('#scrim').classList.add('show');}
+function closeSheet(){$('#sheet').classList.remove('show');$('#scrim').classList.remove('show');}
+$('#scrim').onclick=closeSheet;
+
+const AGO=[[0,'Sada'],[5,'pre 5 min'],[10,'pre 10 min'],[15,'pre 15 min'],[20,'pre 20 min'],[30,'pre 30 min'],[45,'pre 45 min'],[60,'pre 1 h'],[90,'pre 1,5 h'],[120,'pre 2 h'],[180,'pre 3 h'],[240,'pre 4 h']];
+function timeSheet(kind){
+  const now=Date.now(),o=openSleep();
+  const k=kind==='sleep'?(o?'wake':'asleep'):'feed';
+  const title={feed:'🍼 Podoj — kada?',asleep:'😴 Zaspao — kada?',wake:'☀️ Probudio se — kada?'}[k];
+  const minT=k==='wake'?o.start:-Infinity;
+  const chips=AGO.map(([m,l])=>`<button class="chip" data-ago="${m}" ${now-m*MIN<=minT?'disabled':''}>${l}</button>`).join('');
+  openSheet(`<h3>${title}</h3><div class="grid3">${chips}</div>
+    <div class="field"><label for="tIn">Tačno vreme</label><input type="time" id="tIn" value="${hm(now)}"></div>
+    <button class="btn pri" id="tOk">Upiši</button>`);
+  const apply=t=>{closeSheet();if(k==='feed')logFeed(t);else if(k==='asleep')startSleep(t);else endSleep(t);};
+  $('#sheetBody').querySelectorAll('[data-ago]').forEach(b=>b.onclick=()=>apply(now-Number(b.dataset.ago)*MIN));
+  $('#tOk').onclick=()=>{const t=fromTimeInput($('#tIn').value,Date.now());if(t)apply(t);};
+}
+
+function editSheet(e){
+  const isF=e.type==='feed';
+  openSheet(`<h3>${isF?'🍼 Podoj':'😴 Spavanje'}</h3>
+    ${isF?`<div class="field"><label>Vreme</label><input type="datetime-local" id="eT" value="${toLocalInput(e.t)}"></div>`
+      :`<div class="field"><label>Zaspao</label><input type="datetime-local" id="eS" value="${toLocalInput(e.start)}"></div>
+        <div class="field"><label>Probudio se</label><input type="datetime-local" id="eE" value="${e.end!=null?toLocalInput(e.end):''}"></div>
+        <p class="note">Prazno polje „Probudio se" znači da još spava.</p>`}
+    <div class="row"><button class="btn del" id="eDel">Obriši</button><button class="btn pri" id="eOk">Sačuvaj</button></div>`);
+  const del=$('#eDel');
+  del.onclick=()=>{
+    if(!del.classList.contains('arm')){del.classList.add('arm');del.textContent='Sigurno obriši?';return;}
+    closeSheet();const copy={...e};removeEv(e.id);
+    toast(isF?`Podoj u ${hm(e.t)} obrisan`:'Spavanje obrisano',()=>addEv(copy));
+  };
+  $('#eOk').onclick=()=>{
+    const lim=Date.now()+MIN;
+    if(isF){const t=fromLocalInput($('#eT').value);if(!t||t>lim)return toast('Proverite vreme');e.t=t;}
+    else{const s=fromLocalInput($('#eS').value),en=fromLocalInput($('#eE').value);
+      if(!s||s>lim||(en&&en>lim))return toast('Vreme ne može biti u budućnosti');
+      if(en!=null&&en<=s)return toast('Buđenje mora biti posle uspavljivanja');
+      if(en==null){const o=openSleep();if(o&&o.id!==e.id)return toast('Već postoji otvoreno spavanje');}
+      e.start=s;e.end=en;}
+    closeSheet();saveEv(e);toast('Sačuvano');
+  };
+}
+
+function addForDaySheet(){
+  const base=logDay===startOfDay(Date.now())?Date.now():logDay+12*HOUR;
+  openSheet(`<h3>Novi zapis — ${esc(dayLabel(logDay))}</h3>
+    <div class="grid3" style="grid-template-columns:1fr 1fr"><button class="chip on" data-k="feed">🍼 Podoj</button><button class="chip" data-k="sleep">😴 Spavanje</button></div>
+    <div class="field"><label id="aL1">Vreme</label><input type="datetime-local" id="a1" value="${toLocalInput(base)}"></div>
+    <div class="field" id="aF2" hidden><label>Probudio se</label><input type="datetime-local" id="a2" value="${toLocalInput(base+HOUR)}"></div>
+    <button class="btn pri" id="aOk">Dodaj</button>`);
+  let k='feed';const chips=$('#sheetBody').querySelectorAll('[data-k]');
+  const upd=()=>{chips.forEach(c=>c.style.background=c.dataset.k===k?'var(--sleepon)':'');chips.forEach(c=>c.style.color=c.dataset.k===k?'#fff':'');
+    $('#aF2').hidden=k!=='sleep';$('#aL1').textContent=k==='sleep'?'Zaspao':'Vreme';};
+  chips.forEach(c=>c.onclick=()=>{k=c.dataset.k;upd();});upd();
+  $('#aOk').onclick=()=>{
+    const lim=Date.now()+MIN,a=fromLocalInput($('#a1').value);
+    if(!a||a>lim)return toast('Proverite vreme');
+    if(k==='feed'){closeSheet();addEv({id:uid(),type:'feed',t:a});toast(`🍼 Podoj dodat (${hm(a)})`);return;}
+    const b=fromLocalInput($('#a2').value);
+    if(!b||b>lim||b<=a)return toast('Buđenje mora biti posle uspavljivanja');
+    closeSheet();addEv({id:uid(),type:'sleep',start:a,end:b});toast(`😴 Spavanje dodato (${dur(b-a)})`);
+  };
+}
+
+/* ---------- prikaz zapisa ---------- */
+function li(e,now,pm){
+  if(e.type==='feed'){
+    const p=pm[e.id];const gap=p?`razmak ${dur(e.t-p.t)}`:'';
+    return `<li data-id="${e.id}"><span class="i">🍼</span><div class="m"><div class="a">${hm(e.t)}</div><div class="b">Podoj${gap?' · '+gap:''}</div></div><span class="chev">›</span></li>`;
+  }
+  const open=e.end==null,end=open?now:e.end;
+  return `<li data-id="${e.id}"><span class="i">😴</span><div class="m"><div class="a">${hm(e.start)} – ${open?'…':hm(e.end)}</div><div class="b">${open?'Spava sada':'San'}</div></div><span class="r">${dur(end-e.start)}</span><span class="chev">›</span></li>`;
+}
+function bindList(el){el.onclick=ev=>{const l=ev.target.closest('li[data-id]');if(!l)return;const e=events.find(x=>x.id===l.dataset.id);if(e)editSheet(e);};}
+bindList($('#homeList'));bindList($('#dayList'));
+
+/* ---------- POČETNA ---------- */
+function renderHome(now){
+  const d=new Date(now);$('#hDate').textContent=`${DAYN[d.getDay()]}, ${d.getDate()}. ${MON[d.getMonth()]}`;
+  const f=lastFeed(now);
+  $('#feedSub').innerHTML=f?`pre <b>${dur(now-f.t)}</b> · u ${hm(f.t)}`:'Dodirni kad je sisao';
+  const o=openSleep();
+  $('#tSleep').classList.toggle('on',!!o);
+  $('#sleepIco').textContent=o?'☀️':'😴';$('#sleepTxt').textContent=o?'Probudio se':'Zaspao';
+  $('#tSleep').setAttribute('aria-label',o?'Zabeleži buđenje sada':'Zabeleži uspavljivanje sada');
+  if(o)$('#sleepSub').innerHTML=`spava <b>${dur(now-o.start)}</b> · od ${hm(o.start)}`;
+  else{const c=lastClosedSleep();$('#sleepSub').innerHTML=c?`budan <b>${dur(now-c.end)}</b> · spavao ${dur(c.end-c.start)}`:'Dodirni kad zaspi';}
+  const w=$('#wake');w.hidden=!o;
+  if(o){
+    const long=now-o.start>3*HOUR;
+    $('#wakeLbl').textContent=long?'Spava već dugo — ako se probudio, a niste upisali, izaberite kada:':'Zaboravili ste? Probudio se pre:';
+    $('#wakeLbl').classList.toggle('warn',long);
+    const opts=[5,10,15,20,30,45,60,90,120].filter(m=>now-m*MIN>o.start);
+    $('#wakeChips').innerHTML=opts.map(m=>`<button class="chip" data-wago="${m}">${m<60?m+' min':(m===90?'1,5 h':m/60+' h')}</button>`).join('')+`<button class="chip" data-wexact>⏱ tačno vreme</button>`;
+  }
+  const from=now-24*HOUR;
+  const list=events.filter(e=>e.type==='feed'?e.t>=from:(e.end==null||e.end>=from)).slice().reverse();
+  const pm=prevFeedMap();
+  $('#homeList').innerHTML=list.length?list.map(e=>li(e,now,pm)).join(''):'<li class="empty">Još nema zapisa. Dodirni veliko dugme iznad.</li>';
+}
+$('#wakeChips').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-wexact'))return timeSheet('sleep');endSleep(Date.now()-Number(b.dataset.wago)*MIN);};
+
+let lastTap=0;
+function guard(){const n=Date.now();if(n-lastTap<700)return false;lastTap=n;return true;}
+$('#tFeed').onclick=ev=>{if(ev.target.closest('.clock'))return timeSheet('feed');if(guard())logFeed(Date.now());};
+$('#tSleep').onclick=ev=>{if(ev.target.closest('.clock'))return timeSheet('sleep');if(!guard())return;
+  openSleep()?endSleep(Date.now()):startSleep(Date.now());};
+
+/* ---------- statistika ---------- */
+function dayStats(ds,now){
+  const de=addDays(ds,1),pm=prevFeedMap();
+  const fs=feeds().filter(e=>e.t>=ds&&e.t<de);
+  const gaps=fs.map(e=>pm[e.id]?e.t-pm[e.id].t:null).filter(g=>g!=null&&g<12*HOUR);
+  let sleepMs=0,longest=null,naps=0;
+  for(const e of sleeps()){
+    const end=e.end==null?now:e.end;const s=Math.max(e.start,ds),en=Math.min(end,de);
+    if(en>s)sleepMs+=en-s;
+    if(e.start>=ds&&e.start<de){naps++;const L=end-e.start;if(longest==null||L>longest)longest=L;}
+  }
+  const hasData=fs.length>0||sleepMs>0;
+  return {ds,feeds:fs.length,avgGap:gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null,
+    maxGap:gaps.length?Math.max(...gaps):null,sleepMs,longest,naps,hasData,today:ds===startOfDay(now)};
+}
+function statsRange(n,now){const t0=startOfDay(now);const out=[];for(let i=n-1;i>=0;i--)out.push(dayStats(addDays(t0,-i),now));return out;}
+function avg(a){a=a.filter(x=>x!=null);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
+
+function barChart(el,cap,days,val,fmt,color,unitLbl){
+  const W=340,PW=312,H=150,top=16,bot=22,n=days.length,bw=(PW/n);const vals=days.map(val);
+  const max=Math.max(1,...vals.filter(v=>v!=null));
+  const step=max<=4?1:max<=10?2:max<=20?4:Math.ceil(max/5);const ymax=Math.ceil(max/step)*step;
+  const y=v=>top+(H-top-bot)*(1-v/ymax);
+  let g='';
+  for(let v=0;v<=ymax;v+=step)g+=`<line class="grid" x1="0" x2="${PW}" y1="${y(v)}" y2="${y(v)}"/><text x="${W}" y="${y(v)+4}" text-anchor="end">${v}${v===ymax&&unitLbl?' '+unitLbl:''}</text>`;
+  const maxI=vals.indexOf(Math.max(...vals.filter(v=>v!=null)));
+  days.forEach((d,i)=>{
+    const v=vals[i];const x=i*bw+bw*0.18,w=Math.max(3,bw*0.64);
+    if(v!=null&&v>0){const yy=y(v),h=H-bot-yy,r=Math.min(4,w/2,h);
+      g+=`<path d="M${x},${H-bot} V${yy+r} Q${x},${yy} ${x+r},${yy} H${x+w-r} Q${x+w},${yy} ${x+w},${yy+r} V${H-bot} Z" fill="${color}" opacity="${d.today?0.45:1}"/>`;
+      if(n<=14&&(i===maxI||i===n-1))g+=`<text class="val" x="${x+w/2}" y="${yy-4}" text-anchor="middle">${fmt(v)}</text>`;}
+    const showLbl=n<=7||(n<=14?i%2===(n-1)%2:i%5===(n-1)%5);
+    if(showLbl)g+=`<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${n<=7?DAYN[new Date(d.ds).getDay()]:new Date(d.ds).getDate()+'.'}</text>`;
+    g+=`<rect x="${i*bw}" y="0" width="${bw}" height="${H}" fill="transparent" data-i="${i}"/>`;
+  });
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+  el.querySelector('svg').onclick=ev=>{const r=ev.target.closest('[data-i]');if(!r)return;const d=days[+r.dataset.i];
+    cap.textContent=`${dayLabel(d.ds)}: ${val(d)==null?'nema podataka':fmt(val(d),true)}${d.today?' (dan u toku)':''}`;};
+}
+
+function renderStats(now){
+  const days=statsRange(statN,now);
+  const past=days.filter(d=>!d.today&&d.hasData);const use=past.length?past:days.filter(d=>d.hasData);
+  const aF=avg(use.map(d=>d.feeds)),aG=avg(use.map(d=>d.avgGap)),aS=avg(use.map(d=>d.sleepMs)),aL=avg(use.map(d=>d.longest));
+  const k=(l,v)=>`<div class="kpi"><div class="k">${l}</div><div class="v">${v}</div></div>`;
+  $('#kpis').innerHTML=k('Podoja dnevno',aF==null?'—':aF.toFixed(1).replace('.',','))+k('Razmak podoja',aG==null?'—':dur(aG))
+    +k('San dnevno',aS==null?'—':dur(aS))+k('Najduži san (prosek)',aL==null?'—':dur(aL));
+  $('#kpiNote').textContent=use.length?`Prosek za ${use.length} ${use.length===1?'dan':'dana'} sa zapisima${past.length?', bez današnjeg (još traje)':''}.`:'Još nema podataka za statistiku.';
+  const sleepCol=getComputedStyle(document.documentElement).getPropertyValue('--sleep').trim();
+  const feedCol=getComputedStyle(document.documentElement).getPropertyValue('--feed').trim();
+  barChart($('#chSleep'),$('#capSleep'),days,d=>d.hasData?d.sleepMs/HOUR:null,(v,long)=>long?dur(v*HOUR):(Math.round(v*10)/10).toString().replace('.',','),sleepCol,'h');
+  barChart($('#chFeed'),$('#capFeed'),days,d=>d.hasData?d.feeds:null,(v,long)=>long?`${v} podoja`:String(v),feedCol,'');
+  $('#tbl').innerHTML=days.slice().reverse().map(d=>`<tr class="${d.today?'today':''}"><td>${d.today?'Danas':`${DAYN[new Date(d.ds).getDay()]} ${dShort(d.ds)}`}</td><td>${d.hasData?d.feeds:'—'}</td><td>${durS(d.avgGap)}</td><td>${d.hasData?durS(d.sleepMs):'—'}</td><td>${durS(d.longest)}</td></tr>`).join('');
+  $('#dbInfo').textContent=`U bazi: ${feeds().length} podoja, ${sleeps().length} spavanja. Podaci se čuvaju samo na ovom telefonu — povremeno napravite rezervnu kopiju.`;
+}
+$('#seg').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;statN=+b.dataset.n;
+  $('#seg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#capSleep').textContent=$('#capFeed').textContent='Dodirni stubić za detalje';render();};
+
+/* ---------- DNEVNIK ---------- */
+function renderLog(now){
+  const ds=logDay,de=addDays(ds,1),today=startOfDay(now);
+  $('#dLbl').textContent=dayLabel(ds);$('#dNext').disabled=ds>=today;
+  const st=dayStats(ds,now);
+  const k=(l,v)=>`<div class="kpi"><div class="k">${l}</div><div class="v">${v}</div></div>`;
+  $('#dSum').innerHTML=k('Podoji',st.feeds)+k('San',st.sleepMs?durS(st.sleepMs):'—')+k('Najduži',durS(st.longest));
+  const list=events.filter(e=>e.type==='feed'?(e.t>=ds&&e.t<de):(e.start<de&&(e.end==null?now:e.end)>=ds));
+  const pm=prevFeedMap();
+  $('#dayList').innerHTML=list.length?list.map(e=>li(e,now,pm)).join(''):'<li class="empty">Nema zapisa za ovaj dan.</li>';
+}
+$('#dPrev').onclick=()=>{logDay=addDays(logDay,-1);render();};
+$('#dNext').onclick=()=>{logDay=Math.min(addDays(logDay,1),startOfDay(Date.now()));render();};
+$('#dAdd').onclick=addForDaySheet;
+
+/* ---------- izvoz / uvoz ---------- */
+function fmtDT(t){const d=new Date(t);return `${p2(d.getDate())}.${p2(d.getMonth()+1)}.${d.getFullYear()} ${hm(t)}`;}
+function shareFile(name,text,mime){
+  const blob=new Blob([text],{type:mime});
+  try{const file=new File([blob],name,{type:mime});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return;}}catch(e){}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
+}
+const stamp=()=>{const d=new Date();return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;};
+$('#exCsv').onclick=()=>{
+  const rows=[['Tip','Pocetak','Kraj','Trajanje (min)','Razmak od prethodnog podoja (min)']];const pm=prevFeedMap();
+  for(const e of events){if(e.type==='feed'){const p=pm[e.id];rows.push(['Podoj',fmtDT(e.t),'','',p?Math.round((e.t-p.t)/MIN):'']);}
+    else rows.push(['Spavanje',fmtDT(e.start),e.end!=null?fmtDT(e.end):'',e.end!=null?Math.round((e.end-e.start)/MIN):'','']);}
+  shareFile(`relja-zapisi-${stamp()}.csv`,'﻿'+rows.map(r=>r.join(';')).join('\r\n'),'text/csv');
+};
+$('#exDays').onclick=()=>{
+  if(!events.length)return toast('Nema podataka');
+  const now=Date.now(),first=startOfDay(Math.min(...events.map(tOf)));const n=Math.round((startOfDay(now)-first)/(24*HOUR))+1;
+  const rows=[['Datum','Broj podoja','Prosecan razmak (min)','Najduzi razmak (min)','San ukupno (min)','Broj spavanja','Najduzi san (min)']];
+  const m=v=>v==null?'':Math.round(v/MIN);
+  for(const d of statsRange(n,now))rows.push([dShort(d.ds)+new Date(d.ds).getFullYear()+'.',d.feeds,m(d.avgGap),m(d.maxGap),m(d.sleepMs),d.naps,m(d.longest)]);
+  shareFile(`relja-dnevno-${stamp()}.csv`,'﻿'+rows.map(r=>r.join(';')).join('\r\n'),'text/csv');
+};
+$('#exJson').onclick=()=>shareFile(`relja-kopija-${stamp()}.json`,JSON.stringify({app:'relja',v:1,events},null,1),'application/json');
+$('#imJson').onclick=()=>$('#imFile').click();
+$('#imFile').onchange=async ev=>{
+  const f=ev.target.files[0];ev.target.value='';if(!f)return;
+  try{const data=JSON.parse(await f.text());const list=(Array.isArray(data)?data:data.events||[]).filter(valid);
+    if(!list.length)return toast('U fajlu nema zapisa');
+    const ids=new Set(events.map(e=>e.id));const add=list.filter(e=>!ids.has(e.id));
+    events.push(...add);sortEv();render();await store.putMany(add);toast(`Vraćeno ${add.length} zapisa`);
+  }catch(e){toast('Fajl nije ispravna rezervna kopija');}
+};
+
+/* ---------- navigacija ---------- */
+document.querySelector('nav.tabs').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;view=b.dataset.view;
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+view));
+  if(view==='log')logDay=Math.min(logDay,startOfDay(Date.now()));window.scrollTo(0,0);render();};
+
+function render(){const now=Date.now();renderHome(now);if(view==='log')renderLog(now);if(view==='stats')renderStats(now);}
+
+(async()=>{
+  await store.init();events=await store.all();sortEv();render();
+  setInterval(()=>{if(!document.hidden&&!$('#sheet').classList.contains('show'))render();},20000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
+  if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
