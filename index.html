@@ -310,7 +310,7 @@ const hasCloud=()=>!!(KEY&&API.startsWith('https://'));
 function setSync(s){syncState=s;renderSync();}
 function renderSync(){
   const b=$('#syncBtn');if(!b)return;
-  const txt={ok:'☁️ Sačuvano u tabeli',busy:'☁️ Šaljem…',pending:`⏳ Čeka slanje (${queue.length})`,
+  const txt={ok:'☁️ Sačuvano u tabeli',busy:queue.length?'☁️ Šaljem…':'☁️ Povezujem…',pending:`⏳ Čeka slanje (${queue.length})`,
     offline:`📴 Bez interneta · čeka ${queue.length}`,err:queue.length?`⏳ Čeka slanje (${queue.length}) · na telefonu je`:'☁️ Tabela trenutno nedostupna',local:'⚠️ Nije povezano — dodirni'}[syncState];
   b.textContent=syncState==='pending'&&!queue.length?txt.replace(/\(.*\)/,''):txt;
   b.classList.toggle('warn',syncState==='err'||syncState==='local'||(syncState==='offline'&&queue.length>0));
@@ -318,11 +318,12 @@ function renderSync(){
 async function sync(){
   if(!hasCloud()){setSync('local');return;}
   if(syncing){syncAgain=true;return;}
-  syncing=true;if(queue.length)setSync('busy');
+  syncing=true;if(queue.length||syncState==='local')setSync('busy');
+  const ctl=new AbortController(),tmr=setTimeout(()=>ctl.abort(),45000);
   try{
     const ops=queue.slice();let res;
-    if(ops.length)res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({k:KEY,ops})});
-    else res=await fetch(API+'?k='+encodeURIComponent(KEY)+'&t='+Date.now());
+    if(ops.length)res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({k:KEY,ops}),signal:ctl.signal});
+    else res=await fetch(API+'?k='+encodeURIComponent(KEY)+'&t='+Date.now(),{signal:ctl.signal});
     const j=await res.json();
     if(!j||!j.ok)throw new Error(j&&j.err||'greška');
     queue=queue.slice(ops.length);saveQueue();
@@ -330,7 +331,7 @@ async function sync(){
     lastSync=Date.now();lsSet('relja-last-sync',String(lastSync));
     setSync(queue.length?'pending':'ok');
   }catch(e){setSync(navigator.onLine===false?'offline':'err');}
-  finally{syncing=false;if(syncAgain){syncAgain=false;setTimeout(sync,300);}}
+  finally{clearTimeout(tmr);syncing=false;if(syncAgain){syncAgain=false;setTimeout(sync,300);}}
 }
 async function applyServer(list){
   list=list.filter(valid);
