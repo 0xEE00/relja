@@ -19,6 +19,7 @@
   --tx:#eeecf6;--mu:#a09eb4;
   --feed:#f3a860;--feedbg:#35271b;--feedtx:#ffcf9e;
   --sleep:#a29ef7;--sleepbg:#23234a;--sleeptx:#cfcdff;--sleepon:#6d67e6;
+  --poop:#8fd19e;--poopbg:#1d2b22;--pooptx:#b9e8c4;
   --bad:#f07373;--r:22px;
 }
 @media (prefers-color-scheme: light){:root{
@@ -26,9 +27,11 @@
   --tx:#1d1c24;--mu:#66646f;
   --feed:#c96d14;--feedbg:#fbe8d4;--feedtx:#9a4f07;
   --sleep:#5a54d6;--sleepbg:#e7e5fb;--sleeptx:#3f39b8;--sleepon:#5a54d6;
+  --poop:#2f8a4a;--poopbg:#e2f2e6;--pooptx:#246b39;
   --bad:#d23c3c;
 }}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--tx);
   font:16px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   -webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-text-size-adjust:100%}
@@ -54,6 +57,7 @@ h1{font-size:30px;margin:0;letter-spacing:-.02em}
 .tile.feed{background:var(--feedbg)} .tile.feed .t{color:var(--feedtx)}
 .tile.sleep{background:var(--sleepbg)} .tile.sleep .t{color:var(--sleeptx)}
 .tile.sleep.on{background:var(--sleepon)}
+.tile.poop{background:var(--poopbg);min-height:92px;padding-top:14px;padding-bottom:14px} .tile.poop .t{color:var(--pooptx);font-size:26px} .tile.poop .t .ico{font-size:30px} .tile.poop .s{margin-top:4px}
 .tile.sleep.on .t,.tile.sleep.on .s,.tile.sleep.on .s b{color:#fff}
 .tile .clock{position:absolute;top:50%;right:14px;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;
   border:0;display:grid;place-items:center;background:rgba(128,128,128,.18);font-size:22px}
@@ -61,7 +65,7 @@ h1{font-size:30px;margin:0;letter-spacing:-.02em}
 @keyframes flash{0%{filter:brightness(1.6)}100%{filter:none}}
 
 /* Naknadno buđenje */
-.wake{background:var(--card);border-radius:18px;padding:14px 14px 12px;margin:-4px 0 12px}
+.wake{background:var(--card);border-radius:18px;padding:14px 14px 12px;margin:0 0 12px}
 .wake .lbl{font-size:15px;color:var(--mu);margin:0 2px 10px}
 .wake .lbl.warn{color:var(--tx);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -88,7 +92,8 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);
 .daynav button{width:48px;height:48px;border-radius:50%;border:0;background:var(--card);font-size:22px}
 .daynav button[disabled]{opacity:.3}
 .daynav .d{font-size:22px;font-weight:700;text-align:center;flex:1}
-.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.sum .kpi{padding:10px 8px 8px}.sum .kpi .k{font-size:11px;letter-spacing:.02em}.sum .kpi .v{font-size:19px}
 .kpi{background:var(--card);border-radius:16px;padding:12px 12px 10px}
 .kpi .k{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em}
 .kpi .v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
@@ -106,9 +111,9 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);
 .card svg text{fill:var(--mu);font-size:11px;font-family:inherit}
 .card svg .val{fill:var(--tx);font-weight:600}
 .card svg .grid{stroke:var(--line);stroke-width:1}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
-th{font-size:12px;color:var(--mu);font-weight:600;text-align:right;padding:6px 4px;text-transform:uppercase;letter-spacing:.03em}
-td{text-align:right;padding:9px 4px;border-top:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+th{font-size:11px;color:var(--mu);font-weight:600;text-align:right;padding:6px 3px;text-transform:uppercase;letter-spacing:.03em}
+td{text-align:right;padding:9px 3px;border-top:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left}
 tr.today td{color:var(--mu)}
 .btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-weight:600;font-size:17px;background:var(--card2);margin-top:8px}
@@ -172,6 +177,12 @@ input[type=time],input[type=datetime-local]{font:inherit;font-size:17px;backgrou
       <button class="clock" data-time="sleep" aria-label="Spavanje u drugo vreme">⏱</button>
     </div>
 
+    <div class="tile poop" id="tPoop" role="button" aria-label="Zabeleži da je kakio sada">
+      <div class="t"><span class="ico">💩</span><span>Kakio</span></div>
+      <div class="s" id="poopSub"></div>
+      <button class="clock" data-time="poop" aria-label="Kakio u drugo vreme">⏱</button>
+    </div>
+
     <div class="wake" id="wake" hidden>
       <div class="lbl" id="wakeLbl">Zaboravili ste? Probudio se pre:</div>
       <div class="chips" id="wakeChips"></div>
@@ -206,7 +217,7 @@ input[type=time],input[type=datetime-local]{font:inherit;font-size:17px;backgrou
     <div class="card"><h3>Broj podoja po danu</h3><div class="cap" id="capFeed">Dodirni stubić za detalje</div><div id="chFeed"></div></div>
     <div class="card">
       <h3>Po danima</h3>
-      <table><thead><tr><th>Dan</th><th>Podoji</th><th>Razmak</th><th>San</th><th>Najduži</th></tr></thead><tbody id="tbl"></tbody></table>
+      <table><thead><tr><th>Dan</th><th>Podoji</th><th>Razmak</th><th>San</th><th>Najduži</th><th>Kaka</th></tr></thead><tbody id="tbl"></tbody></table>
     </div>
     <h2>Podaci</h2>
     <button class="btn" id="cloudBtn">☁️ Veza sa Google tabelom</button>
@@ -278,15 +289,17 @@ const store={
   async putMany(arr){await this.op(s=>arr.forEach(e=>s.put(e)));mirror();}
 };
 function mirror(){try{localStorage.setItem('relja-backup',JSON.stringify(events));}catch(e){}}
-function valid(e){return e&&typeof e.id==='string'&&((e.type==='feed'&&isFinite(e.t))||(e.type==='sleep'&&isFinite(e.start)&&(e.end==null||isFinite(e.end))));}
+function valid(e){return e&&typeof e.id==='string'&&(((e.type==='feed'||e.type==='poop')&&isFinite(e.t))||(e.type==='sleep'&&isFinite(e.start)&&(e.end==null||isFinite(e.end))));}
 
 /* ---------- model ---------- */
-const tOf=e=>e.type==='feed'?e.t:e.start;
+const tOf=e=>e.type==='sleep'?e.start:e.t;
+const poops=()=>events.filter(e=>e.type==='poop');
 const sortEv=()=>events.sort((a,b)=>tOf(a)-tOf(b));
 const feeds=()=>events.filter(e=>e.type==='feed');
 const sleeps=()=>events.filter(e=>e.type==='sleep');
 function openSleep(){const o=sleeps().filter(e=>e.end==null);return o.length?o[o.length-1]:null;}
 function lastFeed(now){const f=feeds().filter(e=>e.t<=now);return f.length?f[f.length-1]:null;}
+function lastPoop(now){const f=poops().filter(e=>e.t<=now);return f.length?f[f.length-1]:null;}
 function lastClosedSleep(){let best=null;for(const e of sleeps())if(e.end!=null&&(!best||e.end>best.end))best=e;return best;}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function prevFeedMap(){const m={};let prev=null;for(const e of feeds()){m[e.id]=prev;prev=e;}return m;}
@@ -361,6 +374,8 @@ function flash(sel){const el=$(sel);el.classList.remove('flash');void el.offsetW
 
 function logFeed(t){const e={id:uid(),type:'feed',t};addEv(e);flash('#tFeed');
   toast(`🍼 Podoj zabeležen u ${hm(t)}`,()=>removeEv(e.id));}
+function logPoop(t){const e={id:uid(),type:'poop',t};addEv(e);flash('#tPoop');
+  toast(`💩 Kakio zabeleženo u ${hm(t)}`,()=>removeEv(e.id));}
 function startSleep(t){
   if(openSleep()){toast('Već je upisano da spava — prvo upišite kada se probudio');return;}
   const e={id:uid(),type:'sleep',start:t,end:null};addEv(e);flash('#tSleep');
@@ -387,21 +402,21 @@ $('#scrim').onclick=closeSheet;
 const AGO=[[0,'Sada'],[5,'pre 5 min'],[10,'pre 10 min'],[15,'pre 15 min'],[20,'pre 20 min'],[30,'pre 30 min'],[45,'pre 45 min'],[60,'pre 1 h'],[90,'pre 1,5 h'],[120,'pre 2 h'],[180,'pre 3 h'],[240,'pre 4 h']];
 function timeSheet(kind){
   const now=Date.now(),o=openSleep();
-  const k=kind==='sleep'?(o?'wake':'asleep'):'feed';
-  const title={feed:'🍼 Podoj — kada?',asleep:'😴 Zaspao — kada?',wake:'☀️ Probudio se — kada?'}[k];
+  const k=kind==='sleep'?(o?'wake':'asleep'):kind;
+  const title={feed:'🍼 Podoj — kada?',poop:'💩 Kakio — kada?',asleep:'😴 Zaspao — kada?',wake:'☀️ Probudio se — kada?'}[k];
   const minT=k==='wake'?o.start:-Infinity;
   const chips=AGO.map(([m,l])=>`<button class="chip" data-ago="${m}" ${now-m*MIN<=minT?'disabled':''}>${l}</button>`).join('');
   openSheet(`<h3>${title}</h3><div class="grid3">${chips}</div>
     <div class="field"><label for="tIn">Tačno vreme</label><input type="time" id="tIn" value="${hm(now)}"></div>
     <button class="btn pri" id="tOk">Upiši</button>`);
-  const apply=t=>{closeSheet();if(k==='feed')logFeed(t);else if(k==='asleep')startSleep(t);else endSleep(t);};
+  const apply=t=>{closeSheet();if(k==='feed')logFeed(t);else if(k==='poop')logPoop(t);else if(k==='asleep')startSleep(t);else endSleep(t);};
   $('#sheetBody').querySelectorAll('[data-ago]').forEach(b=>b.onclick=()=>apply(now-Number(b.dataset.ago)*MIN));
   $('#tOk').onclick=()=>{const t=fromTimeInput($('#tIn').value,Date.now());if(t)apply(t);};
 }
 
 function editSheet(e){
-  const isF=e.type==='feed';
-  openSheet(`<h3>${isF?'🍼 Podoj':'😴 Spavanje'}</h3>
+  const isF=e.type!=='sleep',LBL={feed:'🍼 Podoj',poop:'💩 Kakio',sleep:'😴 Spavanje'};
+  openSheet(`<h3>${LBL[e.type]}</h3>
     ${isF?`<div class="field"><label>Vreme</label><input type="datetime-local" id="eT" value="${toLocalInput(e.t)}"></div>`
       :`<div class="field"><label>Zaspao</label><input type="datetime-local" id="eS" value="${toLocalInput(e.start)}"></div>
         <div class="field"><label>Probudio se</label><input type="datetime-local" id="eE" value="${e.end!=null?toLocalInput(e.end):''}"></div>
@@ -411,7 +426,7 @@ function editSheet(e){
   del.onclick=()=>{
     if(!del.classList.contains('arm')){del.classList.add('arm');del.textContent='Sigurno obriši?';return;}
     closeSheet();const copy={...e};removeEv(e.id);
-    toast(isF?`Podoj u ${hm(e.t)} obrisan`:'Spavanje obrisano',()=>addEv(copy));
+    toast(isF?`${e.type==='poop'?'Kakio':'Podoj'} u ${hm(e.t)} obrisano`:'Spavanje obrisano',()=>addEv(copy));
   };
   $('#eOk').onclick=()=>{
     const lim=Date.now()+MIN;
@@ -428,7 +443,7 @@ function editSheet(e){
 function addForDaySheet(){
   const base=logDay===startOfDay(Date.now())?Date.now():logDay+12*HOUR;
   openSheet(`<h3>Novi zapis — ${esc(dayLabel(logDay))}</h3>
-    <div class="grid3" style="grid-template-columns:1fr 1fr"><button class="chip on" data-k="feed">🍼 Podoj</button><button class="chip" data-k="sleep">😴 Spavanje</button></div>
+    <div class="grid3"><button class="chip on" data-k="feed">🍼 Podoj</button><button class="chip" data-k="sleep">😴 Spavanje</button><button class="chip" data-k="poop">💩 Kakio</button></div>
     <div class="field"><label id="aL1">Vreme</label><input type="datetime-local" id="a1" value="${toLocalInput(base)}"></div>
     <div class="field" id="aF2" hidden><label>Probudio se</label><input type="datetime-local" id="a2" value="${toLocalInput(base+HOUR)}"></div>
     <button class="btn pri" id="aOk">Dodaj</button>`);
@@ -440,6 +455,7 @@ function addForDaySheet(){
     const lim=Date.now()+MIN,a=fromLocalInput($('#a1').value);
     if(!a||a>lim)return toast('Proverite vreme');
     if(k==='feed'){closeSheet();addEv({id:uid(),type:'feed',t:a});toast(`🍼 Podoj dodat (${hm(a)})`);return;}
+    if(k==='poop'){closeSheet();addEv({id:uid(),type:'poop',t:a});toast(`💩 Kakio dodato (${hm(a)})`);return;}
     const b=fromLocalInput($('#a2').value);
     if(!b||b>lim||b<=a)return toast('Buđenje mora biti posle uspavljivanja');
     closeSheet();addEv({id:uid(),type:'sleep',start:a,end:b});toast(`😴 Spavanje dodato (${dur(b-a)})`);
@@ -448,6 +464,7 @@ function addForDaySheet(){
 
 /* ---------- prikaz zapisa ---------- */
 function li(e,now,pm){
+  if(e.type==='poop')return `<li data-id="${e.id}"><span class="i">💩</span><div class="m"><div class="a">${hm(e.t)}</div><div class="b">Kakio</div></div><span class="chev">›</span></li>`;
   if(e.type==='feed'){
     const p=pm[e.id];const gap=p?`razmak ${dur(e.t-p.t)}`:'';
     return `<li data-id="${e.id}"><span class="i">🍼</span><div class="m"><div class="a">${hm(e.t)}</div><div class="b">Podoj${gap?' · '+gap:''}</div></div><span class="chev">›</span></li>`;
@@ -463,6 +480,8 @@ function renderHome(now){
   const d=new Date(now);$('#hDate').textContent=`${DAYN[d.getDay()]}, ${d.getDate()}. ${MON[d.getMonth()]}`;
   const f=lastFeed(now);
   $('#feedSub').innerHTML=f?`pre <b>${dur(now-f.t)}</b> · u ${hm(f.t)}`:'Dodirni kad je sisao';
+  const pp=lastPoop(now),pc=poops().filter(e=>e.t>=startOfDay(now)&&e.t<=now).length;
+  $('#poopSub').innerHTML=pp?`pre <b>${dur(now-pp.t)}</b>${pc?` · danas ${pc}×`:''}`:'Dodirni kad je kakio';
   const o=openSleep();
   $('#tSleep').classList.toggle('on',!!o);
   $('#sleepIco').textContent=o?'☀️':'😴';$('#sleepTxt').textContent=o?'Probudio se':'Zaspao';
@@ -478,7 +497,7 @@ function renderHome(now){
     $('#wakeChips').innerHTML=opts.map(m=>`<button class="chip" data-wago="${m}">${m<60?m+' min':(m===90?'1,5 h':m/60+' h')}</button>`).join('')+`<button class="chip" data-wexact>⏱ tačno vreme</button>`;
   }
   const from=now-24*HOUR;
-  const list=events.filter(e=>e.type==='feed'?e.t>=from:(e.end==null||e.end>=from)).slice().reverse();
+  const list=events.filter(e=>e.type!=='sleep'?e.t>=from:(e.end==null||e.end>=from)).slice().reverse();
   const pm=prevFeedMap();
   $('#homeList').innerHTML=list.length?list.map(e=>li(e,now,pm)).join(''):'<li class="empty">Još nema zapisa. Dodirni veliko dugme iznad.</li>';
 }
@@ -487,6 +506,7 @@ $('#wakeChips').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;
 
 let lastTap=0;
 function guard(){const n=Date.now();if(n-lastTap<700)return false;lastTap=n;return true;}
+$('#tPoop').onclick=ev=>{if(ev.target.closest('.clock'))return timeSheet('poop');if(guard())logPoop(Date.now());};
 $('#tFeed').onclick=ev=>{if(ev.target.closest('.clock'))return timeSheet('feed');if(guard())logFeed(Date.now());};
 $('#tSleep').onclick=ev=>{if(ev.target.closest('.clock'))return timeSheet('sleep');if(!guard())return;
   openSleep()?endSleep(Date.now()):startSleep(Date.now());};
@@ -502,8 +522,9 @@ function dayStats(ds,now){
     if(en>s)sleepMs+=en-s;
     if(e.start>=ds&&e.start<de){naps++;const L=end-e.start;if(longest==null||L>longest)longest=L;}
   }
-  const hasData=fs.length>0||sleepMs>0;
-  return {ds,feeds:fs.length,avgGap:gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null,
+  const pz=poops().filter(e=>e.t>=ds&&e.t<de).length;
+  const hasData=fs.length>0||sleepMs>0||pz>0;
+  return {ds,feeds:fs.length,poops:pz,avgGap:gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null,
     maxGap:gaps.length?Math.max(...gaps):null,sleepMs,longest,naps,hasData,today:ds===startOfDay(now)};
 }
 function statsRange(n,now){const t0=startOfDay(now);const out=[];for(let i=n-1;i>=0;i--)out.push(dayStats(addDays(t0,-i),now));return out;}
@@ -534,17 +555,18 @@ function barChart(el,cap,days,val,fmt,color,unitLbl){
 function renderStats(now){
   const days=statsRange(statN,now);
   const past=days.filter(d=>!d.today&&d.hasData);const use=past.length?past:days.filter(d=>d.hasData);
-  const aF=avg(use.map(d=>d.feeds)),aG=avg(use.map(d=>d.avgGap)),aS=avg(use.map(d=>d.sleepMs)),aL=avg(use.map(d=>d.longest));
+  const aF=avg(use.map(d=>d.feeds)),aG=avg(use.map(d=>d.avgGap)),aS=avg(use.map(d=>d.sleepMs)),aL=avg(use.map(d=>d.longest)),aP=avg(use.map(d=>d.poops)),aN=avg(use.map(d=>d.naps));
   const k=(l,v)=>`<div class="kpi"><div class="k">${l}</div><div class="v">${v}</div></div>`;
   $('#kpis').innerHTML=k('Podoja dnevno',aF==null?'—':aF.toFixed(1).replace('.',','))+k('Razmak podoja',aG==null?'—':dur(aG))
-    +k('San dnevno',aS==null?'—':dur(aS))+k('Najduži san (prosek)',aL==null?'—':dur(aL));
+    +k('San dnevno',aS==null?'—':dur(aS))+k('Najduži san (prosek)',aL==null?'—':dur(aL))
+    +k('Kakio dnevno',aP==null?'—':aP.toFixed(1).replace('.',','))+k('Spavanja dnevno',aN==null?'—':aN.toFixed(1).replace('.',','));
   $('#kpiNote').textContent=use.length?`Prosek za ${use.length} ${use.length===1?'dan':'dana'} sa zapisima${past.length?', bez današnjeg (još traje)':''}.`:'Još nema podataka za statistiku.';
   const sleepCol=getComputedStyle(document.documentElement).getPropertyValue('--sleep').trim();
   const feedCol=getComputedStyle(document.documentElement).getPropertyValue('--feed').trim();
   barChart($('#chSleep'),$('#capSleep'),days,d=>d.hasData?d.sleepMs/HOUR:null,(v,long)=>long?dur(v*HOUR):(Math.round(v*10)/10).toString().replace('.',','),sleepCol,'h');
   barChart($('#chFeed'),$('#capFeed'),days,d=>d.hasData?d.feeds:null,(v,long)=>long?`${v} podoja`:String(v),feedCol,'');
-  $('#tbl').innerHTML=days.slice().reverse().map(d=>`<tr class="${d.today?'today':''}"><td>${d.today?'Danas':`${DAYN[new Date(d.ds).getDay()]} ${dShort(d.ds)}`}</td><td>${d.hasData?d.feeds:'—'}</td><td>${durS(d.avgGap)}</td><td>${d.hasData?durS(d.sleepMs):'—'}</td><td>${durS(d.longest)}</td></tr>`).join('');
-  $('#dbInfo').textContent=`U bazi: ${feeds().length} podoja, ${sleeps().length} spavanja. `+(hasCloud()?'Podaci su u Google tabeli i na ovom uređaju.':'Podaci su samo na ovom uređaju — povežite Google tabelu.');
+  $('#tbl').innerHTML=days.slice().reverse().map(d=>`<tr class="${d.today?'today':''}"><td>${d.today?'Danas':`${DAYN[new Date(d.ds).getDay()]} ${dShort(d.ds)}`}</td><td>${d.hasData?d.feeds:'—'}</td><td>${durS(d.avgGap)}</td><td>${d.hasData?durS(d.sleepMs):'—'}</td><td>${durS(d.longest)}</td><td>${d.hasData?d.poops:'—'}</td></tr>`).join('');
+  $('#dbInfo').textContent=`U bazi: ${feeds().length} podoja, ${sleeps().length} spavanja, ${poops().length} kakanja. `+(hasCloud()?'Podaci su u Google tabeli i na ovom uređaju.':'Podaci su samo na ovom uređaju — povežite Google tabelu.');
 }
 $('#seg').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;statN=+b.dataset.n;
   $('#seg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
@@ -556,8 +578,8 @@ function renderLog(now){
   $('#dLbl').textContent=dayLabel(ds);$('#dNext').disabled=ds>=today;
   const st=dayStats(ds,now);
   const k=(l,v)=>`<div class="kpi"><div class="k">${l}</div><div class="v">${v}</div></div>`;
-  $('#dSum').innerHTML=k('Podoji',st.feeds)+k('San',st.sleepMs?durS(st.sleepMs):'—')+k('Najduži',durS(st.longest));
-  const list=events.filter(e=>e.type==='feed'?(e.t>=ds&&e.t<de):(e.start<de&&(e.end==null?now:e.end)>=ds));
+  $('#dSum').innerHTML=k('Podoji',st.feeds)+k('San',st.sleepMs?durS(st.sleepMs):'—')+k('Najduži',durS(st.longest))+k('Kaka',st.poops);
+  const list=events.filter(e=>e.type!=='sleep'?(e.t>=ds&&e.t<de):(e.start<de&&(e.end==null?now:e.end)>=ds));
   const pm=prevFeedMap();
   $('#dayList').innerHTML=list.length?list.map(e=>li(e,now,pm)).join(''):'<li class="empty">Nema zapisa za ovaj dan.</li>';
 }
@@ -577,16 +599,16 @@ function shareFile(name,text,mime){
 const stamp=()=>{const d=new Date();return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;};
 $('#exCsv').onclick=()=>{
   const rows=[['Tip','Pocetak','Kraj','Trajanje (min)','Razmak od prethodnog podoja (min)']];const pm=prevFeedMap();
-  for(const e of events){if(e.type==='feed'){const p=pm[e.id];rows.push(['Podoj',fmtDT(e.t),'','',p?Math.round((e.t-p.t)/MIN):'']);}
+  for(const e of events){if(e.type==='poop'){rows.push(['Kakio',fmtDT(e.t),'','','']);continue;}if(e.type==='feed'){const p=pm[e.id];rows.push(['Podoj',fmtDT(e.t),'','',p?Math.round((e.t-p.t)/MIN):'']);}
     else rows.push(['Spavanje',fmtDT(e.start),e.end!=null?fmtDT(e.end):'',e.end!=null?Math.round((e.end-e.start)/MIN):'','']);}
   shareFile(`relja-zapisi-${stamp()}.csv`,'﻿'+rows.map(r=>r.join(';')).join('\r\n'),'text/csv');
 };
 $('#exDays').onclick=()=>{
   if(!events.length)return toast('Nema podataka');
   const now=Date.now(),first=startOfDay(Math.min(...events.map(tOf)));const n=Math.round((startOfDay(now)-first)/(24*HOUR))+1;
-  const rows=[['Datum','Broj podoja','Prosecan razmak (min)','Najduzi razmak (min)','San ukupno (min)','Broj spavanja','Najduzi san (min)']];
+  const rows=[['Datum','Broj podoja','Prosecan razmak (min)','Najduzi razmak (min)','San ukupno (min)','Broj spavanja','Najduzi san (min)','Kakio (broj)']];
   const m=v=>v==null?'':Math.round(v/MIN);
-  for(const d of statsRange(n,now))rows.push([dShort(d.ds)+new Date(d.ds).getFullYear()+'.',d.feeds,m(d.avgGap),m(d.maxGap),m(d.sleepMs),d.naps,m(d.longest)]);
+  for(const d of statsRange(n,now))rows.push([dShort(d.ds)+new Date(d.ds).getFullYear()+'.',d.feeds,m(d.avgGap),m(d.maxGap),m(d.sleepMs),d.naps,m(d.longest),d.poops]);
   shareFile(`relja-dnevno-${stamp()}.csv`,'﻿'+rows.map(r=>r.join(';')).join('\r\n'),'text/csv');
 };
 $('#exJson').onclick=()=>shareFile(`relja-kopija-${stamp()}.json`,JSON.stringify({app:'relja',v:1,events},null,1),'application/json');
