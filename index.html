@@ -112,8 +112,8 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);
 .card svg .val{fill:var(--tx);font-weight:600}
 .card svg .grid{stroke:var(--line);stroke-width:1}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
-th{font-size:11px;color:var(--mu);font-weight:600;text-align:right;padding:6px 3px;text-transform:uppercase;letter-spacing:.03em}
-td{text-align:right;padding:9px 3px;border-top:1px solid var(--line)}
+th{font-size:10.5px;color:var(--mu);font-weight:600;text-align:right;padding:6px 2px;text-transform:uppercase;letter-spacing:0}
+td{text-align:right;padding:9px 2px;border-top:1px solid var(--line)}
 th:first-child,td:first-child{text-align:left;white-space:nowrap}
 tr.today td{color:var(--mu)}
 .btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-weight:600;font-size:17px;background:var(--card2);margin-top:8px}
@@ -215,10 +215,10 @@ input[type=time],input[type=datetime-local]{font:inherit;font-size:17px;backgrou
     <p class="note" id="kpiNote"></p>
     <div class="card"><h3>San po danu</h3><div class="cap" id="capSleep">Dodirni stubić za detalje</div><div id="chSleep"></div></div>
     <div class="card"><h3>Broj podoja po danu</h3><div class="cap" id="capFeed">Dodirni stubić za detalje</div><div id="chFeed"></div></div>
-    <div class="card"><h3>Budni prozori po danu</h3><div class="cap" id="capWake">Prosečno vreme od buđenja do sledećeg spavanja · dodirni stubić</div><div id="chWake"></div></div>
+    <div class="card"><h3>Budan po danu</h3><div class="cap" id="capWake">Zbir svih budnih prozora u danu · dodirni stubić</div><div id="chWake"></div></div>
     <div class="card">
       <h3>Po danima</h3>
-      <div style="overflow-x:auto;margin:0 -4px;padding:0 4px"><table><thead><tr><th>Dan</th><th>Podoji</th><th>Razmak</th><th>San</th><th>Najduži</th><th>Budan</th><th>Kaka</th></tr></thead><tbody id="tbl"></tbody></table></div>
+      <div style="overflow-x:auto;margin:0 -4px;padding:0 4px"><table><thead><tr><th>Dan</th><th>Podoji</th><th>Razmak</th><th>San</th><th>Najd.</th><th>Budan</th><th>Kaka</th></tr></thead><tbody id="tbl"></tbody></table></div>
     </div>
     <h2>Podaci</h2>
     <button class="btn" id="cloudBtn">☁️ Veza sa Google tabelom</button>
@@ -521,7 +521,11 @@ function wakeWindows(){
     const L=b.start-a.end;if(L>0&&L<=WAKE_MAX)out.push({start:a.end,end:b.start,len:L,before:b.id});}
   return out;
 }
-function dayStats(ds,now,ww){
+function currentWake(now){
+  if(openSleep())return null;const c=lastClosedSleep();
+  return c&&now>c.end&&now-c.end<=WAKE_MAX?{start:c.end,end:now,len:now-c.end}:null;
+}
+function dayStats(ds,now,ww,cur){
   const de=addDays(ds,1),pm=prevFeedMap();
   const fs=feeds().filter(e=>e.t>=ds&&e.t<de);
   const gaps=fs.map(e=>pm[e.id]?e.t-pm[e.id].t:null).filter(g=>g!=null&&g<12*HOUR);
@@ -532,15 +536,17 @@ function dayStats(ds,now,ww){
     if(e.start>=ds&&e.start<de){naps++;const L=end-e.start;if(longest==null||L>longest)longest=L;}
   }
   const pz=poops().filter(e=>e.t>=ds&&e.t<de).length;
-  const wk=(ww||wakeWindows()).filter(w=>w.start>=ds&&w.start<de).map(w=>w.len);
+  ww=ww||wakeWindows();if(cur===undefined)cur=currentWake(now);
+  const wk=ww.filter(w=>w.start>=ds&&w.start<de).map(w=>w.len);
+  let wakeTotal=0;for(const w of cur?ww.concat([cur]):ww){const a=Math.max(w.start,ds),b=Math.min(w.end,de);if(b>a)wakeTotal+=b-a;}
   const hasData=fs.length>0||sleepMs>0||pz>0;
   return {ds,feeds:fs.length,poops:pz,avgGap:gaps.length?gaps.reduce((a,b)=>a+b,0)/gaps.length:null,
-    maxGap:gaps.length?Math.max(...gaps):null,avgWake:wk.length?wk.reduce((a,b)=>a+b,0)/wk.length:null,maxWake:wk.length?Math.max(...wk):null,wakes:wk.length,sleepMs,longest,naps,hasData,today:ds===startOfDay(now)};
+    maxGap:gaps.length?Math.max(...gaps):null,avgWake:wk.length?wk.reduce((a,b)=>a+b,0)/wk.length:null,maxWake:wk.length?Math.max(...wk):null,wakes:wk.length,wakeTotal,sleepMs,longest,naps,hasData,today:ds===startOfDay(now)};
 }
-function statsRange(n,now){const t0=startOfDay(now),ww=wakeWindows();const out=[];for(let i=n-1;i>=0;i--)out.push(dayStats(addDays(t0,-i),now,ww));return out;}
+function statsRange(n,now){const t0=startOfDay(now),ww=wakeWindows(),cur=currentWake(now);const out=[];for(let i=n-1;i>=0;i--)out.push(dayStats(addDays(t0,-i),now,ww,cur));return out;}
 function avg(a){a=a.filter(x=>x!=null);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
 
-function barChart(el,cap,days,val,fmt,color,unitLbl){
+function barChart(el,cap,days,val,fmt,color,unitLbl,capFn){
   const W=340,PW=312,H=150,top=16,bot=22,n=days.length,bw=(PW/n);const vals=days.map(val);
   const max=Math.max(1,...vals.filter(v=>v!=null));
   const step=max<=4?1:max<=10?2:max<=20?4:Math.ceil(max/5);const ymax=Math.ceil(max/step)*step;
@@ -559,17 +565,17 @@ function barChart(el,cap,days,val,fmt,color,unitLbl){
   });
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
   el.querySelector('svg').onclick=ev=>{const r=ev.target.closest('[data-i]');if(!r)return;const d=days[+r.dataset.i];
-    cap.textContent=`${dayLabel(d.ds)}: ${val(d)==null?'nema podataka':fmt(val(d),true)}${d.today?' (dan u toku)':''}`;};
+    cap.textContent=`${dayLabel(d.ds)}: ${val(d)==null?'nema podataka':(capFn?capFn(d):fmt(val(d),true))}${d.today?' (dan u toku)':''}`;};
 }
 
 function renderStats(now){
   const days=statsRange(statN,now);
   const past=days.filter(d=>!d.today&&d.hasData);const use=past.length?past:days.filter(d=>d.hasData);
-  const aF=avg(use.map(d=>d.feeds)),aG=avg(use.map(d=>d.avgGap)),aS=avg(use.map(d=>d.sleepMs)),aL=avg(use.map(d=>d.longest)),aP=avg(use.map(d=>d.poops)),aN=avg(use.map(d=>d.naps)),aW=avg(use.map(d=>d.avgWake)),mW=use.map(d=>d.maxWake).filter(x=>x!=null);
+  const aF=avg(use.map(d=>d.feeds)),aG=avg(use.map(d=>d.avgGap)),aS=avg(use.map(d=>d.sleepMs)),aL=avg(use.map(d=>d.longest)),aP=avg(use.map(d=>d.poops)),aN=avg(use.map(d=>d.naps)),aW=avg(use.map(d=>d.avgWake)),aWT=avg(use.map(d=>d.wakeTotal||null)),mW=use.map(d=>d.maxWake).filter(x=>x!=null);
   const k=(l,v)=>`<div class="kpi"><div class="k">${l}</div><div class="v">${v}</div></div>`;
   $('#kpis').innerHTML=k('Podoja dnevno',aF==null?'—':aF.toFixed(1).replace('.',','))+k('Razmak podoja',aG==null?'—':dur(aG))
     +k('San dnevno',aS==null?'—':dur(aS))+k('Najduži san (prosek)',aL==null?'—':dur(aL))
-    +k('Budan prozor (prosek)',aW==null?'—':dur(aW))+k('Najduži budan prozor',mW.length?dur(Math.max(...mW)):'—')
+    +k('Budan dnevno',aWT==null?'—':dur(aWT))+k('Budan prozor (prosek)',aW==null?'—':dur(aW))+k('Najduži budan prozor',mW.length?dur(Math.max(...mW)):'—')
     +k('Kakio dnevno',aP==null?'—':aP.toFixed(1).replace('.',','))+k('Spavanja dnevno',aN==null?'—':aN.toFixed(1).replace('.',','));
   $('#kpiNote').textContent=use.length?`Prosek za ${use.length} ${use.length===1?'dan':'dana'} sa zapisima${past.length?', bez današnjeg (još traje)':''}.`:'Još nema podataka za statistiku.';
   const sleepCol=getComputedStyle(document.documentElement).getPropertyValue('--sleep').trim();
@@ -577,8 +583,9 @@ function renderStats(now){
   barChart($('#chSleep'),$('#capSleep'),days,d=>d.hasData?d.sleepMs/HOUR:null,(v,long)=>long?dur(v*HOUR):(Math.round(v*10)/10).toString().replace('.',','),sleepCol,'h');
   barChart($('#chFeed'),$('#capFeed'),days,d=>d.hasData?d.feeds:null,(v,long)=>long?`${v} podoja`:String(v),feedCol,'');
   const wakeCol=getComputedStyle(document.documentElement).getPropertyValue('--wake').trim();
-  barChart($('#chWake'),$('#capWake'),days,d=>d.avgWake==null?null:d.avgWake/HOUR,(v,long)=>long?`prosečno ${dur(v*HOUR)}`:durS(v*HOUR),wakeCol,'h');
-  $('#tbl').innerHTML=days.slice().reverse().map(d=>`<tr class="${d.today?'today':''}"><td>${d.today?'Danas':`${DAYN[new Date(d.ds).getDay()]} ${new Date(d.ds).getDate()}.`}</td><td>${d.hasData?d.feeds:'—'}</td><td>${durS(d.avgGap)}</td><td>${d.hasData?durS(d.sleepMs):'—'}</td><td>${durS(d.longest)}</td><td>${durS(d.avgWake)}</td><td>${d.hasData?d.poops:'—'}</td></tr>`).join('');
+  barChart($('#chWake'),$('#capWake'),days,d=>d.wakeTotal?d.wakeTotal/HOUR:null,v=>(Math.round(v*10)/10).toString().replace('.',','),wakeCol,'h',
+    d=>`budan ukupno ${dur(d.wakeTotal)}`+(d.wakes?` · ${d.wakes} ${d.wakes===1?'prozor':'prozora'}, prosečno ${dur(d.avgWake)}`:''));
+  $('#tbl').innerHTML=days.slice().reverse().map(d=>`<tr class="${d.today?'today':''}"><td>${d.today?'Danas':`${DAYN[new Date(d.ds).getDay()]} ${new Date(d.ds).getDate()}.`}</td><td>${d.hasData?d.feeds:'—'}</td><td>${durS(d.avgGap)}</td><td>${d.hasData?durS(d.sleepMs):'—'}</td><td>${durS(d.longest)}</td><td>${d.wakeTotal?durS(d.wakeTotal):'—'}</td><td>${d.hasData?d.poops:'—'}</td></tr>`).join('');
   $('#dbInfo').textContent=`U bazi: ${feeds().length} podoja, ${sleeps().length} spavanja, ${poops().length} kakanja. `+(hasCloud()?'Podaci su u Google tabeli i na ovom uređaju.':'Podaci su samo na ovom uređaju — povežite Google tabelu.');
 }
 $('#seg').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;statN=+b.dataset.n;
@@ -619,9 +626,9 @@ $('#exCsv').onclick=()=>{
 $('#exDays').onclick=()=>{
   if(!events.length)return toast('Nema podataka');
   const now=Date.now(),first=startOfDay(Math.min(...events.map(tOf)));const n=Math.round((startOfDay(now)-first)/(24*HOUR))+1;
-  const rows=[['Datum','Broj podoja','Prosecan razmak (min)','Najduzi razmak (min)','San ukupno (min)','Broj spavanja','Najduzi san (min)','Prosecan budan prozor (min)','Najduzi budan prozor (min)','Kakio (broj)']];
+  const rows=[['Datum','Broj podoja','Prosecan razmak (min)','Najduzi razmak (min)','San ukupno (min)','Broj spavanja','Najduzi san (min)','Budan ukupno (min)','Prosecan budan prozor (min)','Najduzi budan prozor (min)','Kakio (broj)']];
   const m=v=>v==null?'':Math.round(v/MIN);
-  for(const d of statsRange(n,now))rows.push([dShort(d.ds)+new Date(d.ds).getFullYear()+'.',d.feeds,m(d.avgGap),m(d.maxGap),m(d.sleepMs),d.naps,m(d.longest),m(d.avgWake),m(d.maxWake),d.poops]);
+  for(const d of statsRange(n,now))rows.push([dShort(d.ds)+new Date(d.ds).getFullYear()+'.',d.feeds,m(d.avgGap),m(d.maxGap),m(d.sleepMs),d.naps,m(d.longest),m(d.wakeTotal||null),m(d.avgWake),m(d.maxWake),d.poops]);
   shareFile(`relja-dnevno-${stamp()}.csv`,'﻿'+rows.map(r=>r.join(';')).join('\r\n'),'text/csv');
 };
 $('#exJson').onclick=()=>shareFile(`relja-kopija-${stamp()}.json`,JSON.stringify({app:'relja',v:1,events},null,1),'application/json');

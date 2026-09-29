@@ -1,5 +1,5 @@
 // Radi i bez interneta: prikazuje sačuvanu verziju odmah, a novu preuzima u pozadini.
-const CACHE = 'relja-v4';
+const CACHE = 'relja-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
